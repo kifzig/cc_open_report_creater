@@ -95,7 +95,7 @@ def create_df(file_path, recruiter, df_type):
     if is_file_available(file_path):
         file = os.listdir(file_path)[0]
         df_new = pd.read_csv(file_path + file)
-        df_new = df_drop_columns(df_new, unwanted_columns_opens)
+        df_new = df_drop_columns(df_new, unwanted_columns)
         df_new = contact_owner_col_move(df_new, recruiter)
         return df_new
     else:
@@ -109,60 +109,6 @@ def create_df(file_path, recruiter, df_type):
             return df_new
 
 
-def create_opens_df(opens_path, recruiter):
-    if is_file_available(opens_path):
-        opens_file = os.listdir(opens_path)[0]
-        df_opens = pd.read_csv(opens_path + opens_file)
-        df_opens = df_drop_columns(df_opens, unwanted_columns_opens)
-        df_opens = contact_owner_col_move(df_opens, recruiter)
-        return df_opens
-    else:
-        message = {'Details': ['You', 'need', 'to', 'download', 'files', 'from',
-                               'Constant Contact', 'and place', 'them', 'in', 'folders',
-                               'open, clicks, bounces, unsubscribed']}
-        df_opens = pd.DataFrame.from_dict(message)
-        return df_opens
-
-
-def create_clicks_df(clicks_path, recruiter):
-    if is_file_available(clicks_path):
-        clicks_file = os.listdir(clicks_path)[0]
-        df_clicks = pd.read_csv(clicks_path + clicks_file)
-        df_clicks = df_drop_columns(df_clicks, unwanted_columns_clicks)
-        df_clicks = contact_owner_col_move(df_clicks, recruiter)
-        return df_clicks
-    else:
-        message = {'Details': ['There', 'are', 'no', 'clicks', 'for', 'this', 'blast.']}
-        df_clicks = pd.DataFrame.from_dict(message)
-        return df_clicks
-
-
-def create_bounces_df(bounces_path, recruiter):
-    if is_file_available(bounces_path):
-        bounces_file = os.listdir(bounces_path)[0]
-        df_bounces = pd.read_csv(bounces_path + bounces_file)
-        df_bounces = df_drop_columns(df_bounces, unwanted_columns_bounces)
-        df_bounces = contact_owner_col_move(df_bounces, recruiter)
-        return df_bounces
-    else:
-        message = {'Details': ['There', 'are', 'no', 'bounces', 'for', 'this', 'blast.']}
-        df_bounces = pd.DataFrame.from_dict(message)
-        return df_bounces
-
-
-def create_unsubscribed_df(unsubscribed_path, recruiter):
-    if is_file_available(unsubscribed_path):
-        unsubscribed_file = os.listdir(unsubscribed_path)[0]
-        df_unsubscribed = pd.read_csv(unsubscribed_path + unsubscribed_file)
-        df_unsubscribed = df_drop_columns(df_unsubscribed, unwanted_columns_bounces)
-        df_unsubscribed = contact_owner_col_move(df_unsubscribed, recruiter)
-        return df_unsubscribed
-    else:
-        message = {'Details': ['There', 'are', 'no', 'unsubscribed', 'contacts', 'for', 'this', 'blast.']}
-        df_unsubscribed = pd.DataFrame.from_dict(message)
-        return df_unsubscribed
-
-
 def create_single_stat_report(directory, recruiter_name='none'):
 
     #Getting opens path and create opens dataframe for Excel sheet import
@@ -171,7 +117,6 @@ def create_single_stat_report(directory, recruiter_name='none'):
 
     #Getting clicks path and create clicks dataframe for Excel sheet import
     clicks_path = directory + "/2clicks/"
-    #df_clicks = create_clicks_df(clicks_path, recruiter_name)
     df_clicks = create_df(clicks_path, recruiter_name, df_type="clicks")
 
     #Getting bounces path and creating bounces dataframe for import into Excel
@@ -228,17 +173,11 @@ subfolders = ['1opens', '2clicks', '3bounces', '4unsubscribed']
 stats_path = os.getcwd()
 
 #Extra Fields that can be dropped from the Excel Sheet
-unwanted_columns_opens = ['Email status', 'Email permission status', 'Email update source', 'Street address line 1 - Home',
+unwanted_columns = ['Email status', 'Email permission status', 'Email update source', 'Street address line 1 - Home',
                         'Email Lists', 'Created At', 'Updated At', 'Confirmed Opt-Out Date', 'Phone - fax',
                         'City - Home', 'Phone - work', 'Zip/Postal Code - Home', 'Country - Home', 'State/Province - Other',
                         'Custom Field 1', 'Job title', 'Confirmed Opt-Out Source', 'Confirmed Opt-Out Reason', 'Street address line 1 - Work',
                         'City - Work', 'State/Province - Work', 'Zip/Postal Code - Work', 'Country - Work', 'off lim', 'Source Name', 'Phone - home']
-
-unwanted_columns_clicks = ['Email status', 'Email Lists', 'Email permission status',
-                           'Email update source', 'Created At', 'Updated At', 'Confirmed Opt-Out Date', 'Source Name', 'Job title']
-
-unwanted_columns_bounces = ['Email status', 'Email permission status', 'Email update source',
-                            'Source Name', 'Created At', 'Job title']
 
 todays_date = date.today()
 current_month = todays_date.strftime("%Y-%m")
