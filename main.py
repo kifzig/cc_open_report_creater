@@ -3,6 +3,7 @@ import PySimpleGUI as sg
 import xlsxwriter
 import os
 from datetime import date
+from specialty import Specialty
 
 
 def is_file_available(path):
@@ -14,9 +15,9 @@ def is_file_available(path):
         return True
 
 
-def make_recruiter_folders(path):
+def make_recruiter_folders(path, specialty):
     try:
-        for folder in ns_recruiter_folders:
+        for folder in specialty.recruiter_folders:
             new_path = os.path.join(path, folder)
             if not os.path.isdir(new_path):
                 os.mkdir(new_path)
@@ -35,7 +36,7 @@ def make_subfolders(path):
         # parent_directory = path
         # if not os.path.isdir(parent_directory):
         #     os.mkdir(path=parent_directory)
-        for folder in subfolders:
+        for folder in specialty.subfolders:
             print(folder)
             print(path)
             new_path = os.path.join(path, folder)
@@ -49,7 +50,7 @@ def make_subfolders(path):
 
 
 def clear_subfolders(chosen_path):
-    for folder in subfolders:
+    for folder in specialty.subfolders:
         files = os.listdir(chosen_path + f'/{folder}')
         if not files:
             continue
@@ -73,7 +74,7 @@ def contact_owner_col_move(df_sheet, recruiter):
     except KeyError:
         # if no Contact Owner column is in the dataframe
         num_of_df_rows = len(df_sheet.index)
-        contact_owner = ns_recruiter_dict.get(recruiter)
+        contact_owner = specialty.recruiter_dictionary.get(recruiter)
         contact_owner_column = add_contact_owner_column(num_of_df_rows, contact_owner)
     finally:
         df_sheet.insert(0, "Contact Owner", contact_owner_column)
@@ -103,6 +104,8 @@ def create_df(file_path, recruiter, df_type):
             message = {'Details': ['You', 'need', 'to', 'download', 'files', 'from',
                                    'Constant Contact', 'and place', 'them', 'in', 'folders',
                                    'open, clicks, bounces, unsubscribed']}
+            df_new = pd.DataFrame.from_dict(message)
+            return df_new
         else:
             message = {'Details': ['There', 'are', 'no', f'{df_type}', 'for', 'this', 'blast.']}
             df_new = pd.DataFrame.from_dict(message)
@@ -124,8 +127,9 @@ def create_single_stat_report(directory, recruiter_name='none'):
     df_bounces = create_df(bounces_path, recruiter_name, df_type="bounces")
 
     #Getting unsubscribed path and creating unsubscribed dataframe for import into Excel
-    unsubscribed_path = directory + "/4unsubscribed/"
-    df_unsubscribed = create_df(unsubscribed_path, recruiter_name, df_type="unsubscribeds")
+    if specialty.name == "Neurosurgery":
+        unsubscribed_path = directory + "/4unsubscribed/"
+        df_unsubscribed = create_df(unsubscribed_path, recruiter_name, df_type="unsubscribeds")
 
     #Creating the Excel Report
     report_prefix = values['-REPORT PREFIX-']
@@ -139,7 +143,8 @@ def create_single_stat_report(directory, recruiter_name='none'):
     df_opens.to_excel(writer, sheet_name='Opens', index=False)
     df_clicks.to_excel(writer, sheet_name='Clicks', index=False)
     df_bounces.to_excel(writer, sheet_name='Bounces', index=False)
-    df_unsubscribed.to_excel(writer, sheet_name='Unsubscribed', index=False)
+    if specialty.name == "Neurosurgery":
+        df_unsubscribed.to_excel(writer, sheet_name='Unsubscribed', index=False)
 
 
     #Create worksheet objects and set column width and formatting options
@@ -153,23 +158,21 @@ def create_single_stat_report(directory, recruiter_name='none'):
     worksheet_clicks.set_column(0, 40, 35, border_format)
     worksheet_bounces = writer.sheets['Bounces']
     worksheet_bounces.set_column(0, 40, 35, border_format)
-    worksheet_unsubscribed = writer.sheets['Unsubscribed']
-    worksheet_unsubscribed.set_column(0, 40, 35, border_format)
+    if specialty.name == "Neurosurgery":
+        worksheet_unsubscribed = writer.sheets['Unsubscribed']
+        worksheet_unsubscribed.set_column(0, 40, 35, border_format)
 
     writer.save()
     if recruiter_name != ' None':
         print(export_file_path + " created.")
 
-def create_all_ns_reports(directory):
-    for recruiter in ns_recruiter_folders:
+def create_all_reports(directory, specialty):
+    for recruiter in specialty.recruiter_folders:
         recruiter_directory = directory + f'/{recruiter}'
         create_single_stat_report(recruiter_directory, recruiter)
 
 
 current_working_directory = os.getcwd()
-ns_recruiter_folders = ['andrea', 'jonathan', 'rachel', 'nancy']
-ns_recruiter_dict = {'andrea': 'Andrea Winslow', 'jonathan': 'Jonathan Haines', 'nancy': 'Nancy Cusick', 'rachel': 'Rachel Prero'}
-subfolders = ['1opens', '2clicks', '3bounces', '4unsubscribed']
 stats_path = os.getcwd()
 
 #Extra Fields that can be dropped from the Excel Sheet
@@ -183,18 +186,27 @@ todays_date = date.today()
 current_month = todays_date.strftime("%Y-%m")
 
 #Creating GUI with PySimpleGUI
-
+sg.theme('DarkTeal9')
 layout = [
-    [sg.Text('CREATE FOLDERS: opens, clicks, bounces, unsubscribed')],
-    [sg.Text('Choose directory'), sg.Input(f'{current_working_directory}', key='-NEW-FOLDER-'), sg.FolderBrowse(target='-NEW-FOLDER-')],
-    [sg.Button('Create NS Folder')],
-    [sg.Text('CREATE SINGLE REPORT -- choose directory containing subfolders opens, clicks, bounces, unsubscribed')],
+    [sg.Text("OPEN REPORT HELPER", font=("Helvetica", 25), text_color="white")],
+    [
+        sg.Text("CHOOSE SPECIALTY: ", font=("Helvetica", 18)),
+        sg.Radio("Neurosurgery", "group1", default=True, key='-SUB-NS-'),
+        sg.Radio("Urology", "group1", default=False, key='-SUB-UL-'),
+        sg.Radio("Neurology", "group1", default=False, key='-SUB-NL-'),
+        sg.Radio("GI", "group1", default=False, key='-SUB-GI-')
+    ],
+    [sg.Text("Choose from any of the following options below", font=("Helvetica", 13), text_color="white")],
+    [sg.Text('CREATE FOLDERS: 1opens, 2clicks, 3bounces for all recruiters')],
+    [sg.Text('Choose destination:'), sg.Input(f'{current_working_directory}', key='-NEW-FOLDER-'), sg.FolderBrowse(target='-NEW-FOLDER-')],
+    [sg.Button('Create Folders')],
+    [sg.Text('CREATE SINGLE REPORT FOR 1 RECRUITER -- choose directory containing subfolders 1opens, 2clicks, 3bounces')],
     [sg.Text('Report Location:'), sg.Input(key='-FOLDER-'), sg.FolderBrowse(target='-FOLDER-')],
-    [sg.Text('Report Name Prefix: '), sg.Input(f'2022-11 NS', key='-REPORT PREFIX-'), sg.Text('Blast Report.xlsx')],
+    [sg.Text('Report Name Prefix: '), sg.Input(f'{current_month}', key='-REPORT PREFIX-'), sg.Text('Blast Report.xlsx')],
     [sg.Button('Create Single Report')],
-    [sg.Text('CREATE ALL REPORTS -- choose directory containing andrea, jonathan, nancy, rachel folders with populated folders')],
-    [sg.Text('Select NS Folder'), sg.Input(key='-NS FOLDER-'), sg.FolderBrowse(target='-NS FOLDER-')],
-    [sg.Text('Report Name Prefix: '), sg.Input(f'{current_month} NS', key='-NS REPORT PREFIX-'), sg.Text('[Recruiter Name] Blast Report.xlsx')],
+    [sg.Text('CREATE REPORTS FOR ALL RECRUITERS -- choose directory containing recruiter folders filled with cc folder/files')],
+    [sg.Text('Select Folder'), sg.Input(key='-NS FOLDER-'), sg.FolderBrowse(target='-NS FOLDER-')],
+    [sg.Text('Report Name Prefix: '), sg.Input(f'{current_month}', key='-NS REPORT PREFIX-'), sg.Text('[Recruiter Name] Blast Report.xlsx')],
     [sg.Button('Create All Reports')],
     #[sg.Text('Clear Subfolders of CSVs'), sg.Input(key='-CLEAR-FOLDER-'), sg.FolderBrowse(target='-CLEAR-FOLDER-')],
     #[sg.Button('Clear_Subfolders')],
@@ -203,21 +215,35 @@ layout = [
 
 window = sg.Window('BLAST REPORT HELPER', layout)
 
-#Loop is for the GUI and it is continuous until the GI is closed or 'Exit' is clicked
+#Below loop is for the GUI and it is continuous until the GI is closed or 'Exit' is clicked
 
 while True or event == 'OK':
     event, values = window.read()
+
+    #Check radio buttons for specialty selected
+    spec = ""
+    if values['-SUB-NS-'] == True:
+        spec = "Neurosurgery"
+    elif values['-SUB-NL-'] == True:
+        spec = "Neurology"
+    elif values['-SUB-UL-'] == True:
+        spec = "Urology"
+    elif values['-SUB-GI-'] == True:
+        spec = "Gastro"
+
+    specialty = Specialty(spec)
+
+
     if event == sg.WIN_CLOSED or event == 'Exit':
         break
 
-    elif event == 'Create NS Folder':
-
+    elif event == 'Create Folders':
         stats_path = values['-NEW-FOLDER-']
-        path = make_recruiter_folders(stats_path)
+        path = make_recruiter_folders(stats_path, specialty)
 
     elif event == 'Create All Reports':
-        ns_folder = values['-NS FOLDER-']
-        create_all_ns_reports(ns_folder)
+        subspecialty_folder = values['-NS FOLDER-']
+        create_all_reports(subspecialty_folder, specialty)
 
 
     # elif event == 'Clear_Subfolders':
